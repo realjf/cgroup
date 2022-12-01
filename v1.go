@@ -11,7 +11,6 @@ import (
 
 type CgroupV1 interface {
 	ICgroup
-	disableOOMKiller(disable bool)
 }
 
 type cgroupImplV1 struct {
@@ -19,6 +18,7 @@ type cgroupImplV1 struct {
 	name    string
 	version CgroupVersion
 	res     *specs.LinuxResources
+	oomkill bool
 }
 
 func NewCgroupImplV1() *cgroupImplV1 {
@@ -34,6 +34,7 @@ func NewCgroupImplV1() *cgroupImplV1 {
 			Rdma:           make(map[string]specs.LinuxRdma),
 			HugepageLimits: make([]specs.LinuxHugepageLimit, 0),
 		},
+		oomkill: true,
 	}
 }
 
@@ -79,13 +80,27 @@ func (c *cgroupImplV1) LimitPid(pid int) error {
 	return c.cg.Add(cgroups.Process{Pid: pid})
 }
 
-func (c *cgroupImplV1) disableOOMKiller(disable bool) {
+func (c *cgroupImplV1) disableOOMKiller() {
 	var oom *bool = new(bool)
 	*oom = true
 	c.res.Memory.DisableOOMKiller = oom
+	c.oomkill = false
 }
 
 func (c *cgroupImplV1) WaitForEvents() {
+	for {
+		if !c.oomkill {
+			// efd, err := c.cg.OOMEventFD()
+			// // or by using RegisterMemoryEvent
+			// // event := cgroup1.OOMEvent()
+			// // efd, err := c.cg.RegisterMemoryEvent(event)
+			// if err != nil {
+			// 	logrus.Error(err)
+			// } else {
+
+			// }
+		}
+	}
 
 }
 
@@ -99,4 +114,9 @@ func (c *cgroupImplV1) GetLimitPids() ([]uint64, error) {
 		wpids = append(wpids, uint64(p.Pid))
 	}
 	return wpids, nil
+}
+
+func (c *cgroupImplV1) Stats() (any, error) {
+	// return *v1.Metrics
+	return c.cg.Stat()
 }

@@ -3,11 +3,11 @@ package main
 import (
 	"os/user"
 	"syscall"
-	"time"
 
-	. "github.com/realjf/cgroup"
 	"github.com/realjf/utils"
 	"github.com/sirupsen/logrus"
+
+	. "github.com/realjf/cgroup"
 )
 
 func main() {
@@ -31,7 +31,7 @@ func main() {
 	attr := syscall.SysProcAttr{
 		// Cloneflags:                 syscall.CLONE_NEWUTS | syscall.CLONE_NEWIPC | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS | syscall.CLONE_NEWUSER | syscall.CLONE_NEWNET,
 		// GidMappingsEnableSetgroups: true,
-		// Setpgid:                    true,
+		Setpgid: true,
 		// UidMappings: []syscall.SysProcIDMap{
 		// 	{
 		// 		ContainerID: 0,
@@ -46,7 +46,8 @@ func main() {
 		// 		Size:        1,
 		// 	},
 		// },
-		// Pgid: 0,
+		Pgid:       0,
+		Credential: &syscall.Credential{},
 	}
 	limiter.cmd.SetSysProcAttr(attr)
 
@@ -55,10 +56,17 @@ func main() {
 		logrus.Println(err.Error())
 		return
 	}
+	defer func() {
+		err = limiter.cg.Close()
+		if err != nil {
+			logrus.Println(err.Error())
+			return
+		}
+	}()
 	// limit
-	limiter.cg.SetOptions(WithCPULimit(80))                // cpu usage limit 80%
-	limiter.cg.SetOptions(WithMemoryLimit(200 * Megabyte)) // memory limit 8MB
-	// limiter.cg.SetOptions(WithDisableOOMKiller())
+	limiter.cg.SetOptions(WithCPULimit(80))              // cpu usage limit 80%
+	limiter.cg.SetOptions(WithMemoryLimit(1 * Megabyte)) // memory limit 8MB
+	limiter.cg.SetOptions(WithDisableOOMKiller())
 
 	err = limiter.cg.Create()
 	if err != nil {
@@ -68,13 +76,12 @@ func main() {
 
 	go limiter.cg.WaitForEvents()
 
-	args := []string{"--cpu", "1", "--vm", "1", "--vm-bytes", "120M", "--timeout", "10s", "--vm-keep"}
+	args := []string{"--cpu", "1", "--vm", "1", "--vm-bytes", "220M", "--timeout", "20s", "--vm-keep"}
 	pid, err := limiter.cmd.Command("stress", args...)
 	if err != nil {
 		logrus.Println(err.Error())
 		return
 	}
-
 	// limit by pid
 	logrus.Printf("limit pid: %d\n", pid)
 	err = limiter.cg.LimitPid(pid)
@@ -82,13 +89,12 @@ func main() {
 		logrus.Println(err.Error())
 		return
 	}
-	time.Sleep(10 * time.Second)
 	wpids, err := limiter.cg.GetLimitPids()
 	if err != nil {
 		logrus.Println(err.Error())
 		return
 	}
-	logrus.Printf("limit pid: %v\n", wpids)
+	logrus.Printf("limit pid now: %v\n", wpids)
 
 	out, err := limiter.cmd.Run()
 	if err != nil {
@@ -99,10 +105,5 @@ func main() {
 	}
 	logrus.Printf("%s", out)
 
-	err = limiter.cg.Close()
-	if err != nil {
-		logrus.Println(err.Error())
-		return
-	}
 	logrus.Println("done")
 }

@@ -1,6 +1,11 @@
 package cgroup
 
-import "errors"
+import (
+	"errors"
+
+	v1 "github.com/containerd/cgroups/stats/v1"
+	"github.com/containerd/cgroups/v3/cgroup2/stats"
+)
 
 // Percent is a percentage value. It is used to specify CPU rate limits.
 type Percent uint
@@ -16,6 +21,10 @@ const (
 )
 
 type CgroupVersion string
+
+type Metrics interface {
+	*stats.Metrics | *v1.Metrics
+}
 
 const (
 	V1 CgroupVersion = "v1"

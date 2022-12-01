@@ -14,7 +14,6 @@ type CgV2 struct {
 
 type CgroupV2 interface {
 	ICgroup
-	disableOOMKiller(disable bool)
 }
 
 type cgroupImplV2 struct {
@@ -99,8 +98,8 @@ func (c *cgroupImplV2) GetLimitPids() ([]uint64, error) {
 	return c.cg.Procs(true)
 }
 
-func (c *cgroupImplV2) disableOOMKiller(disable bool) {
-	c.oomkill = disable
+func (c *cgroupImplV2) disableOOMKiller() {
+	c.oomkill = true
 }
 
 func (c *cgroupImplV2) handleOOMKillEvent(cgroup2.Event) {
@@ -125,5 +124,9 @@ func (c *cgroupImplV2) WaitForEvents() {
 			c.handleOOMKillEvent(event)
 		}
 	}
+}
 
+func (c *cgroupImplV2) Stats() (any, error) {
+	// return *stats.Metrics
+	return c.cg.Stat()
 }

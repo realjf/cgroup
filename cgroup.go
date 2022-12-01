@@ -2,6 +2,7 @@ package cgroup
 
 import (
 	"fmt"
+	"sync"
 )
 
 type ICgroup interface {
@@ -14,18 +15,21 @@ type ICgroup interface {
 	LimitPid(pid int) error
 	GetLimitPids() ([]uint64, error)
 	WaitForEvents()
+	Stats() (any, error)
 }
 
 type cgroupImpl struct {
 	version CgroupVersion
 	cg      ICgroup
 	ch      chan bool
+	lock    sync.Mutex
 }
 
 func NewCgroup(version CgroupVersion, options ...Option) (ICgroup, error) {
 	cg := &cgroupImpl{
 		version: version,
 		ch:      make(chan bool),
+		lock:    sync.Mutex{},
 	}
 
 	switch version {
@@ -47,27 +51,39 @@ func (c *cgroupImpl) Version() CgroupVersion {
 }
 
 func (c *cgroupImpl) Create() error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	return c.cg.Create()
 }
 
 func (c *cgroupImpl) SetOptions(options ...Option) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	c.cg.SetOptions(options...)
 }
 
 func (c *cgroupImpl) Instance() any {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	return c.cg.Instance()
 }
 
 func (c *cgroupImpl) Close() error {
 	close(c.ch)
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	return c.cg.Close()
 }
 
 func (c *cgroupImpl) Load() error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	return c.cg.Load()
 }
 
 func (c *cgroupImpl) LimitPid(pid int) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	return c.cg.LimitPid(pid)
 }
 
@@ -83,5 +99,11 @@ func (c *cgroupImpl) WaitForEvents() {
 }
 
 func (c *cgroupImpl) GetLimitPids() ([]uint64, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	return c.cg.GetLimitPids()
+}
+
+func (c *cgroupImpl) Stats() (any, error) {
+	return c.cg.Stats()
 }

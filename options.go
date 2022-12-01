@@ -78,9 +78,9 @@ func WithMemoryLimit(memory Memory) Option {
 func WithDisableOOMKiller() Option {
 	return func(cgroup ICgroup) {
 		if c, ok := cgroup.Instance().(*cgroupImplV1); ok {
-			c.disableOOMKiller(true)
+			c.disableOOMKiller()
 		} else if c, ok := cgroup.Instance().(*cgroupImplV2); ok {
-			c.disableOOMKiller(true)
+			c.disableOOMKiller()
 		}
 	}
 }
