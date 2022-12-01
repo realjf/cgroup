@@ -19,6 +19,8 @@ func main() {
 	limiter := &Limiter{
 		cmd: utils.NewCmd(),
 	}
+	defer limiter.cmd.Close()
+
 	var err error
 	user, err := user.Current()
 	if err != nil {
