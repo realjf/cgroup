@@ -19,6 +19,7 @@ type cgroupImplV1 struct {
 	version CgroupVersion
 	res     *specs.LinuxResources
 	oomkill bool
+	pid     int
 }
 
 func NewCgroupImplV1() *cgroupImplV1 {
@@ -35,6 +36,7 @@ func NewCgroupImplV1() *cgroupImplV1 {
 			HugepageLimits: make([]specs.LinuxHugepageLimit, 0),
 		},
 		oomkill: true,
+		pid:     0,
 	}
 }
 
@@ -77,6 +79,7 @@ func (c *cgroupImplV1) Create() error {
 }
 
 func (c *cgroupImplV1) LimitPid(pid int) error {
+	c.pid = pid
 	return c.cg.Add(cgroups.Process{Pid: pid})
 }
 
@@ -85,23 +88,6 @@ func (c *cgroupImplV1) disableOOMKiller() {
 	*oom = true
 	c.res.Memory.DisableOOMKiller = oom
 	c.oomkill = false
-}
-
-func (c *cgroupImplV1) WaitForEvents() {
-	for {
-		if !c.oomkill {
-			// efd, err := c.cg.OOMEventFD()
-			// // or by using RegisterMemoryEvent
-			// // event := cgroup1.OOMEvent()
-			// // efd, err := c.cg.RegisterMemoryEvent(event)
-			// if err != nil {
-			// 	logrus.Error(err)
-			// } else {
-
-			// }
-		}
-	}
-
 }
 
 func (c *cgroupImplV1) GetLimitPids() ([]uint64, error) {

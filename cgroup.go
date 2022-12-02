@@ -14,7 +14,6 @@ type ICgroup interface {
 	Load() error
 	LimitPid(pid int) error
 	GetLimitPids() ([]uint64, error)
-	WaitForEvents()
 	Stats() (any, error)
 }
 
@@ -85,17 +84,6 @@ func (c *cgroupImpl) LimitPid(pid int) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	return c.cg.LimitPid(pid)
-}
-
-func (c *cgroupImpl) WaitForEvents() {
-	for {
-		select {
-		case <-c.ch:
-			return
-		default:
-			c.cg.WaitForEvents()
-		}
-	}
 }
 
 func (c *cgroupImpl) GetLimitPids() ([]uint64, error) {

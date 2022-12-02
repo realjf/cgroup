@@ -6,6 +6,7 @@ import (
 
 	"github.com/containerd/cgroups/v3/cgroup2"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/realjf/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,6 +26,7 @@ type cgroupImplV2 struct {
 	oomkill bool // whether to use oomkill
 	cevent  <-chan cgroup2.Event
 	cerr    <-chan error
+	pid     int
 }
 
 func NewCgroupImplV2() *cgroupImplV2 {
@@ -42,6 +44,7 @@ func NewCgroupImplV2() *cgroupImplV2 {
 		cevent:  make(<-chan cgroup2.Event),
 		cerr:    make(<-chan error, 1),
 		oomkill: false,
+		pid:     0,
 	}
 }
 
@@ -91,6 +94,8 @@ func (c *cgroupImplV2) LimitPid(pid int) error {
 	if err != nil {
 		return err
 	}
+	c.pid = pid
+	defer c.handleDisableOOMKiller()
 	return c.cg.AddProc(pid_u64)
 }
 
@@ -102,28 +107,19 @@ func (c *cgroupImplV2) disableOOMKiller() {
 	c.oomkill = true
 }
 
-func (c *cgroupImplV2) handleOOMKillEvent(cgroup2.Event) {
-	logrus.Info("oom killed")
-}
-
-func (c *cgroupImplV2) WaitForEvents() {
-	c.cevent, c.cerr = c.cg.EventChan()
-	err := <-c.cerr
-	logrus.Infof("e:%#v", err)
-	if err != nil {
-		logrus.Error(err)
-		return
-	}
-	event := <-c.cevent
-	logrus.Infof("e:%#v", event)
+func (c *cgroupImplV2) handleDisableOOMKiller() {
 	if c.oomkill {
-		if event.OOM > 0 {
-			c.handleOOMKillEvent(event)
+		cmd := utils.NewCmd()
+		defer cmd.Close()
+		args := []string{"-c", "$(echo -1000 > /proc/" + strconv.Itoa(c.pid) + "/oom_score_adj)"}
+		out, err := cmd.RunCommand("/bin/bash", args...)
+		if err != nil {
+			logrus.Error(err)
+			return
 		}
-		if event.OOMKill > 0 {
-			c.handleOOMKillEvent(event)
-		}
+		logrus.Infof("%s", out)
 	}
+
 }
 
 func (c *cgroupImplV2) Stats() (any, error) {

@@ -12,74 +12,169 @@ go get github.com/realjf/cgroup
 **`cgroup v1 example`**
 ```go
 func main() {
- cg, err := NewCgroup(V1, WithName("test"))
+ type Limiter struct {
+  cg  ICgroup
+  cmd *utils.Command
+ }
+
+ limiter := &Limiter{
+  cmd: utils.NewCmd(),
+ }
+ defer limiter.cmd.Close()
+
+ var err error
+ user, err := user.Current()
  if err != nil {
-  log.Println(err.Error())
+  logrus.Println(err.Error())
+  return
+ }
+ limiter.cmd.SetUser(user)
+ attr := syscall.SysProcAttr{
+  Setpgid: true,
+  Pgid:       0,
+  Credential: &syscall.Credential{},
+ }
+ limiter.cmd.SetSysProcAttr(attr)
+
+ limiter.cg, err = NewCgroup(V1, WithName("test"))
+ if err != nil {
+  logrus.Println(err.Error())
+  return
+ }
+ defer func() {
+  err = limiter.cg.Close()
+  if err != nil {
+   logrus.Println(err.Error())
+   return
+  }
+ }()
+ // limit
+ limiter.cg.SetOptions(WithCPULimit(80))              // cpu usage limit 80%
+ limiter.cg.SetOptions(WithMemoryLimit(8 * Megabyte)) // memory limit 8MB
+ limiter.cg.SetOptions(WithDisableOOMKiller())        // disable oom killer
+
+ err = limiter.cg.Create()
+ if err != nil {
+  logrus.Println(err.Error())
   return
  }
 
- cg.SetOptions(WithCPULimit(80))              // cpu usage limit 80%
- cg.SetOptions(WithMemoryLimit(8 * Megabyte)) // memory limit 8MB
-
- err = cg.Create()
+ args := []string{"--cpu", "1", "--vm", "1", "--vm-bytes", "20M", "--timeout", "20s", "--vm-keep"}
+ pid, err := limiter.cmd.Command("stress", args...)
  if err != nil {
-  log.Println(err.Error())
+  logrus.Println(err.Error())
   return
  }
-
  // limit by pid
- err = cg.LimitPid(os.Getpid())
+ logrus.Printf("limit pid: %d\n", pid)
+ err = limiter.cg.LimitPid(pid)
  if err != nil {
-  log.Println(err.Error())
+  logrus.Println(err.Error())
   return
  }
+ wpids, err := limiter.cg.GetLimitPids()
+ if err != nil {
+  logrus.Println(err.Error())
+  return
+ }
+ logrus.Printf("limit pid now: %v\n", wpids)
 
- err = cg.Close()
+ out, err := limiter.cmd.Run()
  if err != nil {
-  log.Println(err.Error())
+  errout, _ := limiter.cmd.GetStderrOutput()
+  logrus.Printf("run cmd stderr:%s\n", errout)
+  logrus.Println(err.Error())
   return
  }
+ logrus.Printf("%s", out)
+
+ logrus.Println("done")
 }
+
 
 ```
 
 **`cgroup v2 example`**
 
 ```go
- cg, err := NewCgroup(V2, WithSlice("/"), WithGroup("hello.slice"))
+func main() {
+ type Limiter struct {
+  cg  ICgroup
+  cmd *utils.Command
+ }
+
+ limiter := &Limiter{
+  cmd: utils.NewCmd(),
+ }
+ defer limiter.cmd.Close()
+
+ var err error
+ user, err := user.Current()
  if err != nil {
-  log.Println(err.Error())
+  logrus.Println(err.Error())
   return
  }
+ limiter.cmd.SetUser(user)
+ attr := syscall.SysProcAttr{
+  Setpgid: true,
+  Pgid:       0,
+  Credential: &syscall.Credential{},
+ }
+ limiter.cmd.SetSysProcAttr(attr)
+
+ limiter.cg, err = NewCgroup(V2, WithSlice("/"), WithGroup("mycgroup.slice"))
+ if err != nil {
+  logrus.Println(err.Error())
+  return
+ }
+ defer func() {
+  err = limiter.cg.Close()
+  if err != nil {
+   logrus.Println(err.Error())
+   return
+  }
+ }()
  // limit
- cg.SetOptions(WithCPULimit(80))              // cpu usage limit 80%
- cg.SetOptions(WithMemoryLimit(8 * Megabyte)) // memory limit 8MB
+ limiter.cg.SetOptions(WithCPULimit(80))              // cpu usage limit 80%
+ limiter.cg.SetOptions(WithMemoryLimit(8 * Megabyte)) // memory limit 8MB
+ limiter.cg.SetOptions(WithDisableOOMKiller())        // disable oom killer
 
- err = cg.Create()
+ err = limiter.cg.Create()
  if err != nil {
-  log.Println(err.Error())
+  logrus.Println(err.Error())
   return
  }
 
+ args := []string{"--cpu", "1", "--vm", "1", "--vm-bytes", "20M", "--timeout", "20s", "--vm-keep"}
+ pid, err := limiter.cmd.Command("stress", args...)
+ if err != nil {
+  logrus.Println(err.Error())
+  return
+ }
  // limit by pid
- err = cg.LimitPid(os.Getpid())
+ logrus.Printf("limit pid: %d\n", pid)
+ err = limiter.cg.LimitPid(pid)
  if err != nil {
-  log.Println(err.Error())
+  logrus.Println(err.Error())
   return
  }
+ wpids, err := limiter.cg.GetLimitPids()
+ if err != nil {
+  logrus.Println(err.Error())
+  return
+ }
+ logrus.Printf("limit pid now: %v\n", wpids)
 
- args := []string{"--cpu", "4", "--vm", "2", "--vm-bytes", "120M", "--timeout", "20s"}
- out, err := utils.NewCmd().RunCommand("stress", args...)
+ out, err := limiter.cmd.Run()
  if err != nil {
-  log.Println(err.Error())
+  errout, _ := limiter.cmd.GetStderrOutput()
+  logrus.Printf("run cmd stderr:%s\n", errout)
+  logrus.Println(err.Error())
   return
  }
- log.Printf("%s", out)
+ logrus.Printf("%s", out)
 
- err = cg.Close()
- if err != nil {
-  log.Println(err.Error())
-  return
- }
- log.Println("done")
+ logrus.Println("done")
+}
+
 ```

@@ -4,10 +4,9 @@ import (
 	"os/user"
 	"syscall"
 
+	. "github.com/realjf/cgroup"
 	"github.com/realjf/utils"
 	"github.com/sirupsen/logrus"
-
-	. "github.com/realjf/cgroup"
 )
 
 func main() {
@@ -65,8 +64,8 @@ func main() {
 	}()
 	// limit
 	limiter.cg.SetOptions(WithCPULimit(80))              // cpu usage limit 80%
-	limiter.cg.SetOptions(WithMemoryLimit(1 * Megabyte)) // memory limit 8MB
-	limiter.cg.SetOptions(WithDisableOOMKiller())
+	limiter.cg.SetOptions(WithMemoryLimit(8 * Megabyte)) // memory limit 8MB
+	limiter.cg.SetOptions(WithDisableOOMKiller())        // disable oom killer
 
 	err = limiter.cg.Create()
 	if err != nil {
@@ -74,9 +73,7 @@ func main() {
 		return
 	}
 
-	go limiter.cg.WaitForEvents()
-
-	args := []string{"--cpu", "1", "--vm", "1", "--vm-bytes", "220M", "--timeout", "20s", "--vm-keep"}
+	args := []string{"--cpu", "1", "--vm", "1", "--vm-bytes", "20M", "--timeout", "20s", "--vm-keep"}
 	pid, err := limiter.cmd.Command("stress", args...)
 	if err != nil {
 		logrus.Println(err.Error())
