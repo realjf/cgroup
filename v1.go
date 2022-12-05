@@ -22,7 +22,7 @@ type cgroupImplV1 struct {
 	pid     int
 }
 
-func NewCgroupImplV1() *cgroupImplV1 {
+func newCgroupImplV1() *cgroupImplV1 {
 	return &cgroupImplV1{
 		version: V1,
 		res: &specs.LinuxResources{

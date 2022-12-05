@@ -4,14 +4,14 @@ import (
 	"os/user"
 	"syscall"
 
-	. "github.com/realjf/cgroup"
+	"github.com/realjf/cgroup"
 	"github.com/realjf/utils"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
 	type Limiter struct {
-		cg  ICgroup
+		cg  cgroup.ICgroup
 		cmd *utils.Command
 	}
 
@@ -50,7 +50,7 @@ func main() {
 	}
 	limiter.cmd.SetSysProcAttr(attr)
 
-	limiter.cg, err = NewCgroup(V2, WithSlice("/"), WithGroup("mycgroup.slice"))
+	limiter.cg, err = cgroup.NewCgroup(cgroup.V2, cgroup.WithSlice("/"), cgroup.WithGroup("mycgroup.slice"))
 	if err != nil {
 		logrus.Println(err.Error())
 		return
@@ -63,9 +63,9 @@ func main() {
 		}
 	}()
 	// limit
-	limiter.cg.SetOptions(WithCPULimit(80))              // cpu usage limit 80%
-	limiter.cg.SetOptions(WithMemoryLimit(8 * Megabyte)) // memory limit 8MB
-	limiter.cg.SetOptions(WithDisableOOMKiller())        // disable oom killer
+	limiter.cg.SetOptions(cgroup.WithCPULimit(80))                     // cpu usage limit 80%
+	limiter.cg.SetOptions(cgroup.WithMemoryLimit(8 * cgroup.Megabyte)) // memory limit 8MB
+	limiter.cg.SetOptions(cgroup.WithDisableOOMKiller())               // disable oom killer
 
 	err = limiter.cg.Create()
 	if err != nil {
@@ -73,7 +73,7 @@ func main() {
 		return
 	}
 
-	args := []string{"--cpu", "1", "--vm", "1", "--vm-bytes", "20M", "--timeout", "20s", "--vm-keep"}
+	args := []string{"--cpu", "1", "--vm", "1", "--vm-bytes", "20M", "--timeout", "10s", "--vm-keep"}
 	pid, err := limiter.cmd.Command("stress", args...)
 	if err != nil {
 		logrus.Println(err.Error())

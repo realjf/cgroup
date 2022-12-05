@@ -29,7 +29,7 @@ type cgroupImplV2 struct {
 	pid     int
 }
 
-func NewCgroupImplV2() *cgroupImplV2 {
+func newCgroupImplV2() *cgroupImplV2 {
 	return &cgroupImplV2{
 		version: V2,
 		res: &cgroup2.Resources{

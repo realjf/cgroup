@@ -33,9 +33,9 @@ func NewCgroup(version CgroupVersion, options ...Option) (ICgroup, error) {
 
 	switch version {
 	case V1:
-		cg.cg = NewCgroupImplV1()
+		cg.cg = newCgroupImplV1()
 	case V2:
-		cg.cg = NewCgroupImplV2()
+		cg.cg = newCgroupImplV2()
 	default:
 		return nil, fmt.Errorf("unsupported cgroup version")
 	}
