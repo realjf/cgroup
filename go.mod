@@ -6,7 +6,7 @@ require (
 	github.com/containerd/cgroups v1.0.4
 	github.com/containerd/cgroups/v3 v3.0.0-20221112182753-e8802a182774
 	github.com/opencontainers/runtime-spec v1.0.2
-	github.com/realjf/utils v0.0.22
+	github.com/realjf/utils v0.0.24
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.1
 )
