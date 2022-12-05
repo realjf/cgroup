@@ -20,6 +20,7 @@ type cgroupImplV1 struct {
 	res     *specs.LinuxResources
 	oomkill bool
 	pid     int
+	debug   bool
 }
 
 func newCgroupImplV1() *cgroupImplV1 {
@@ -37,6 +38,7 @@ func newCgroupImplV1() *cgroupImplV1 {
 		},
 		oomkill: true,
 		pid:     0,
+		debug:   false,
 	}
 }
 
@@ -48,6 +50,10 @@ func (c *cgroupImplV1) SetOptions(options ...Option) {
 	for _, opt := range options {
 		opt(c)
 	}
+}
+
+func (c *cgroupImplV1) SetDebug(debug bool) {
+	c.debug = debug
 }
 
 func (c *cgroupImplV1) Instance() any {

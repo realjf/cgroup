@@ -15,6 +15,7 @@ type ICgroup interface {
 	LimitPid(pid int) error
 	GetLimitPids() ([]uint64, error)
 	Stats() (any, error)
+	SetDebug(debug bool)
 }
 
 type cgroupImpl struct {
@@ -94,4 +95,8 @@ func (c *cgroupImpl) GetLimitPids() ([]uint64, error) {
 
 func (c *cgroupImpl) Stats() (any, error) {
 	return c.cg.Stats()
+}
+
+func (c *cgroupImpl) SetDebug(debug bool) {
+	c.cg.SetDebug(debug)
 }

@@ -27,6 +27,7 @@ type cgroupImplV2 struct {
 	cevent  <-chan cgroup2.Event
 	cerr    <-chan error
 	pid     int
+	debug   bool
 }
 
 func newCgroupImplV2() *cgroupImplV2 {
@@ -45,6 +46,7 @@ func newCgroupImplV2() *cgroupImplV2 {
 		cerr:    make(<-chan error, 1),
 		oomkill: false,
 		pid:     0,
+		debug:   false,
 	}
 }
 
@@ -112,12 +114,14 @@ func (c *cgroupImplV2) handleDisableOOMKiller() {
 		cmd := utils.NewCmd()
 		defer cmd.Close()
 		args := []string{"-c", "$(echo -1000 > /proc/" + strconv.Itoa(c.pid) + "/oom_score_adj)"}
-		out, err := cmd.RunCommand("/bin/bash", args...)
+		_, err := cmd.RunCommand("/bin/bash", args...)
 		if err != nil {
-			logrus.Error(err)
+			if c.debug {
+				logrus.Error(err)
+			}
+
 			return
 		}
-		logrus.Infof("%s", out)
 	}
 
 }
@@ -125,4 +129,8 @@ func (c *cgroupImplV2) handleDisableOOMKiller() {
 func (c *cgroupImplV2) Stats() (any, error) {
 	// return *stats.Metrics
 	return c.cg.Stat()
+}
+
+func (c *cgroupImplV2) SetDebug(debug bool) {
+	c.debug = debug
 }
