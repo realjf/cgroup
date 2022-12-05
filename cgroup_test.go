@@ -1,8 +1,12 @@
 package cgroup
 
 import (
+	"fmt"
+	"os"
+	"strconv"
 	"testing"
 
+	"github.com/realjf/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,5 +48,17 @@ func TestCgroup(t *testing.T) {
 			}
 
 		})
+	}
+}
+
+func TestV2(t *testing.T) {
+	cmd := utils.NewCmd()
+	defer cmd.Close()
+	args := []string{"-c", "$(echo -1000 > /proc/" + strconv.Itoa(os.Getpid()) + "/oom_score_adj)"}
+	_, err := cmd.RunCommand("/bin/bash", args...)
+	if err != nil {
+		fmt.Printf("%s\n", err.Error())
+	} else {
+		fmt.Println("done")
 	}
 }
