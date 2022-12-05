@@ -23,18 +23,6 @@ func main() {
  defer limiter.cmd.Close()
 
  var err error
- user, err := user.Current()
- if err != nil {
-  logrus.Println(err.Error())
-  return
- }
- limiter.cmd.SetUser(user)
- attr := syscall.SysProcAttr{
-  Setpgid: true,
-  Pgid:       0,
-  Credential: &syscall.Credential{},
- }
- limiter.cmd.SetSysProcAttr(attr)
 
  limiter.cg, err = NewCgroup(V1, WithName("test"))
  if err != nil {
@@ -109,18 +97,6 @@ func main() {
  defer limiter.cmd.Close()
 
  var err error
- user, err := user.Current()
- if err != nil {
-  logrus.Println(err.Error())
-  return
- }
- limiter.cmd.SetUser(user)
- attr := syscall.SysProcAttr{
-  Setpgid: true,
-  Pgid:       0,
-  Credential: &syscall.Credential{},
- }
- limiter.cmd.SetSysProcAttr(attr)
 
  limiter.cg, err = NewCgroup(V2, WithSlice("/"), WithGroup("mycgroup.slice"))
  if err != nil {

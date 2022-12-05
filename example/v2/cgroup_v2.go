@@ -1,12 +1,10 @@
 package main
 
 import (
-	"os/user"
-	"syscall"
-
-	"github.com/realjf/cgroup"
 	"github.com/realjf/utils"
 	"github.com/sirupsen/logrus"
+
+	"github.com/realjf/cgroup"
 )
 
 func main() {
@@ -21,34 +19,34 @@ func main() {
 	defer limiter.cmd.Close()
 
 	var err error
-	user, err := user.Current()
-	if err != nil {
-		logrus.Println(err.Error())
-		return
-	}
-	limiter.cmd.SetUser(user)
-	attr := syscall.SysProcAttr{
-		// Cloneflags:                 syscall.CLONE_NEWUTS | syscall.CLONE_NEWIPC | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS | syscall.CLONE_NEWUSER | syscall.CLONE_NEWNET,
-		// GidMappingsEnableSetgroups: true,
-		Setpgid: true,
-		// UidMappings: []syscall.SysProcIDMap{
-		// 	{
-		// 		ContainerID: 0,
-		// 		HostID:      0,
-		// 		Size:        1,
-		// 	},
-		// },
-		// GidMappings: []syscall.SysProcIDMap{
-		// 	{
-		// 		ContainerID: 0,
-		// 		HostID:      0,
-		// 		Size:        1,
-		// 	},
-		// },
-		Pgid:       0,
-		Credential: &syscall.Credential{},
-	}
-	limiter.cmd.SetSysProcAttr(attr)
+	// user, err := user.Current()
+	// if err != nil {
+	// 	logrus.Println(err.Error())
+	// 	return
+	// }
+	// limiter.cmd.SetUser(user)
+	// attr := syscall.SysProcAttr{
+	// 	// Cloneflags:                 syscall.CLONE_NEWUTS | syscall.CLONE_NEWIPC | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS | syscall.CLONE_NEWUSER | syscall.CLONE_NEWNET,
+	// 	// GidMappingsEnableSetgroups: true,
+	// 	Setpgid: true,
+	// 	// UidMappings: []syscall.SysProcIDMap{
+	// 	// 	{
+	// 	// 		ContainerID: 0,
+	// 	// 		HostID:      0,
+	// 	// 		Size:        1,
+	// 	// 	},
+	// 	// },
+	// 	// GidMappings: []syscall.SysProcIDMap{
+	// 	// 	{
+	// 	// 		ContainerID: 0,
+	// 	// 		HostID:      0,
+	// 	// 		Size:        1,
+	// 	// 	},
+	// 	// },
+	// 	Pgid:       0,
+	// 	Credential: &syscall.Credential{},
+	// }
+	// limiter.cmd.SetSysProcAttr(attr)
 
 	limiter.cg, err = cgroup.NewCgroup(cgroup.V2, cgroup.WithSlice("/"), cgroup.WithGroup("mycgroup.slice"))
 	if err != nil {
